@@ -1,0 +1,49 @@
+version: '3'
+services:
+  postgres:
+    image: postgres
+    environment:
+      POSTGRES_USER: ${SERVICE_DB_USERNAME}
+      POSTGRES_PASSWORD: ${SERVICE_DB_PWD}
+      POSTGRES_DB: ${SERVICE_DB_NAME}
+    volumes:
+      - postgres-db-volume:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "ptt"]
+      interval: 5s
+      retries: 5
+    restart: always
+    ports: 
+      - 5432:5432
+
+  postgres-init:
+    build: ./init_data
+    environment:
+      SERVICE_DB_USERNAME: ${SERVICE_DB_USERNAME}
+      SERVICE_DB_PWD: ${SERVICE_DB_PWD}
+      SERVICE_DB_NAME: "${SERVICE_DB_NAME}"
+    depends_on:
+      - postgres
+
+  server:
+    build: ./server
+    restart: always
+    environment:
+      SERVICE_DB_USERNAME: ${SERVICE_DB_USERNAME}
+      SERVICE_DB_PWD: ${SERVICE_DB_PWD}
+      SERVICE_DB_NAME: "${SERVICE_DB_NAME}"
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+    ports:
+      - "5000:5000"
+    depends_on:
+      - postgres
+
+  app:
+    build: ./app
+    restart: always
+    ports:
+      - "8080:8080"
+    depends_on:
+      - servers
+volumes:
+  postgres-db-volume:
